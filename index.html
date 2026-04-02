@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RentCheck Me</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Reality-based housing search</p>
+        <h1>Connect your money habits to the places you can actually afford.</h1>
+        <p class="hero-text">
+          RentCheck Me turns take-home pay, recurring spending, debt, savings targets, and move-in fees
+          into a grounded housing budget, then matches it against listings with the hidden costs included.
+        </p>
+      </div>
+
+      <section class="hero-panel">
+        <h2>Affordability Snapshot</h2>
+        <div class="metric-grid" id="headline-metrics"></div>
+      </section>
+    </header>
+
+    <main class="layout">
+      <section class="panel input-panel">
+        <div class="section-heading">
+          <p class="eyebrow">Step 1</p>
+          <h2>Real Financial Picture</h2>
+        </div>
+
+        <form id="finance-form" class="finance-form">
+          <label>
+            <span>Monthly take-home pay</span>
+            <input type="number" id="income" min="0" step="50">
+          </label>
+          <label>
+            <span>Monthly debt payments</span>
+            <input type="number" id="debt" min="0" step="25">
+          </label>
+          <label>
+            <span>Monthly savings goal</span>
+            <input type="number" id="savings" min="0" step="25">
+          </label>
+          <label>
+            <span>Cash available for move-in</span>
+            <input type="number" id="cash" min="0" step="100">
+          </label>
+          <label>
+            <span>Preferred city</span>
+            <select id="city"></select>
+          </label>
+          <label>
+            <span>Roommates</span>
+            <select id="roommates">
+              <option value="0">Living alone</option>
+              <option value="1">1 roommate</option>
+              <option value="2">2 roommates</option>
+            </select>
+          </label>
+        </form>
+
+        <div class="section-heading compact">
+          <p class="eyebrow">Imported spending</p>
+          <h3>Monthly recurring costs</h3>
+        </div>
+        <div class="expense-table-wrap">
+          <table class="expense-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Expense</th>
+                <th>Monthly</th>
+              </tr>
+            </thead>
+            <tbody id="expense-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel budget-panel">
+        <div class="section-heading">
+          <p class="eyebrow">Step 2</p>
+          <h2>Budget Built From Your Data</h2>
+        </div>
+
+        <div class="budget-breakdown" id="budget-breakdown"></div>
+
+        <div class="callout">
+          <h3>Budget rule used here</h3>
+          <p>
+            Maximum housing budget is the lower of: your leftover cash after non-housing obligations and
+            35% of monthly take-home pay. This keeps the number grounded in what you can sustain.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <section class="panel listings-panel">
+      <div class="section-heading">
+        <p class="eyebrow">Step 3</p>
+        <h2>Places You Can Live, With Hidden Costs Included</h2>
+      </div>
+      <div class="listing-grid" id="listing-grid"></div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
