@@ -14,10 +14,28 @@ const mimeTypes = {
 http.createServer((req, res) => {
   const requestPath = req.url === "/" ? "/index.html" : req.url;
   const safePath = path.normalize(requestPath).replace(/^(\.\.[/\\])+/, "");
-  const filePath = path.join(root, safePath);
+  let filePath = path.join(root, safePath);
 
   fs.readFile(filePath, (error, content) => {
     if (error) {
+      const extension = path.extname(filePath);
+      if (!extension) {
+        filePath = path.join(root, "index.html");
+        fs.readFile(filePath, (fallbackError, fallbackContent) => {
+          if (fallbackError) {
+            res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+            res.end("Not found");
+            return;
+          }
+
+          res.writeHead(200, {
+            "Content-Type": mimeTypes[".html"]
+          });
+          res.end(fallbackContent);
+        });
+        return;
+      }
+
       res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
       res.end("Not found");
       return;

@@ -1,0 +1,654 @@
+import React, { useEffect, useState } from "https://esm.sh/react@18.3.1";
+import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
+import {
+  BrowserRouter,
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useLocation
+} from "https://esm.sh/react-router-dom@6.28.0";
+import { html } from "https://esm.sh/htm@3.1.1/react";
+
+const API_BASE = "http://localhost:3001/api";
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0
+});
+
+function App() {
+  const [users, setUsers] = useState([]);
+  const [dashboard, setDashboard] = useState(null);
+  const [selectedAreaIds, setSelectedAreaIds] = useState([]);
+  const [status, setStatus] = useState("loading");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  async function loadUsers() {
+    try {
+      setStatus("loading");
+      setError("");
+      const response = await fetch(`${API_BASE}/users`);
+      if (!response.ok) {
+        throw new Error(`Backend responded with ${response.status}`);
+      }
+      const data = await response.json();
+      setUsers(data);
+
+      if (data.length > 0) {
+        await loadDashboard(data[0].id);
+      } else {
+        setStatus("ready");
+      }
+    } catch (err) {
+      setError(`Could not load backend data from ${API_BASE}. Make sure the backend is running on port 3001.`);
+      setStatus("error");
+    }
+  }
+
+  async function loadDashboard(userId, areaIds = []) {
+    try {
+      setStatus("loading");
+      setError("");
+      const response = await fetch(
+        `${API_BASE}/dashboard?userId=${encodeURIComponent(userId)}${areaIds.map((id) => `&areaId=${encodeURIComponent(id)}`).join("")}`
+      );
+      if (!response.ok) {
+        throw new Error(`Backend responded with ${response.status}`);
+      }
+      const data = normalizeDashboard(await response.json());
+      setDashboard(data);
+      setSelectedAreaIds(data.selectedAreaIds || []);
+      setStatus("ready");
+    } catch (err) {
+      setError(`Could not load the dashboard from ${API_BASE}. Make sure the backend is running on port 3001.`);
+      setStatus("error");
+    }
+  }
+
+  async function updateDashboard(partial) {
+    if (!dashboard) {
+      return;
+    }
+
+    try {
+      setStatus("loading");
+      setError("");
+      const payload = {
+        userId: dashboard.user.id,
+        city: partial.city ?? dashboard.user.city,
+        areaIds: partial.areaIds ?? selectedAreaIds,
+        finances: {
+          income: partial.finances?.income ?? dashboard.user.finances.income,
+          debt: partial.finances?.debt ?? dashboard.user.finances.debt,
+          savings: partial.finances?.savings ?? dashboard.user.finances.savings,
+          cash: partial.finances?.cash ?? dashboard.user.finances.cash,
+          roommates: partial.finances?.roommates ?? dashboard.user.finances.roommates
+        }
+      };
+
+      const response = await fetch(`${API_BASE}/dashboard/calculate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        throw new Error(`Backend responded with ${response.status}`);
+      }
+      const data = normalizeDashboard(await response.json());
+      setDashboard(data);
+      setSelectedAreaIds(data.selectedAreaIds || []);
+      setStatus("ready");
+    } catch (err) {
+      setError(`Could not update the dashboard. Make sure the backend is still running on port 3001.`);
+      setStatus("error");
+    }
+  }
+
+  async function switchUser(userId) {
+    setSelectedAreaIds([]);
+    await loadDashboard(userId, []);
+  }
+
+  async function toggleArea(areaId) {
+    const nextAreaIds = selectedAreaIds.includes(areaId)
+      ? selectedAreaIds.filter((id) => id !== areaId)
+      : [...selectedAreaIds, areaId];
+
+    setSelectedAreaIds(nextAreaIds);
+    await updateDashboard({ areaIds: nextAreaIds });
+  }
+
+  async function clearAreas() {
+    setSelectedAreaIds([]);
+    await updateDashboard({ areaIds: [] });
+  }
+
+  if (!dashboard || status === "loading") {
+    return html`<div className="loading-state">Loading RentCheck Me...</div>`;
+  }
+
+  if (status === "error") {
+    return html`
+      <div className="loading-state">
+        <div className="error-card">
+          <h2>Frontend loaded, but the app could not start.</h2>
+          <p>${error}</p>
+          <p>Test this URL directly: <code>http://localhost:3001/api/users</code></p>
+        </div>
+      </div>
+    `;
+  }
+
+  return html`
+    <${BrowserRouter}>
+      <div className="page-shell">
+        <${TopNav} dashboard=${dashboard} />
+        <${Routes}>
+          <${Route}
+            path="/"
+            element=${html`
+              <${WelcomePage}
+                dashboard=${dashboard}
+                listingsCount=${dashboard.listings.length}
+                realisticCount=${dashboard.listings.filter((listing) => listing.fitLabel !== "Not realistic").length}
+              />
+            `}
+          />
+          <${Route}
+            path="/profile"
+            element=${html`
+              <${ProfilePage}
+                users=${users}
+                dashboard=${dashboard}
+                onSwitchUser=${switchUser}
+                onUpdateDashboard=${updateDashboard}
+              />
+            `}
+          />
+          <${Route}
+            path="/search"
+            element=${html`
+              <${SearchPage}
+                dashboard=${dashboard}
+                selectedAreaIds=${selectedAreaIds}
+                onToggleArea=${toggleArea}
+                onClearAreas=${clearAreas}
+              />
+            `}
+          />
+          <${Route}
+            path="/assistant"
+            element=${html`
+              <${AssistantPage}
+                dashboard=${dashboard}
+                selectedAreaIds=${selectedAreaIds}
+              />
+            `}
+          />
+          <${Route} path="*" element=${html`<${Navigate} to="/" replace />`} />
+        <//>
+      </div>
+    <//>
+  `;
+}
+
+function TopNav({ dashboard }) {
+  const location = useLocation();
+  const links = [
+    { to: "/", label: "Welcome" },
+    { to: "/profile", label: "Profile" },
+    { to: "/search", label: "Area Search" },
+    { to: "/assistant", label: "AI Assistant" }
+  ];
+
+  return html`
+    <header className="site-nav panel">
+      <div>
+        <p className="eyebrow">Dynamic React frontend</p>
+        <h2>RentCheck Me</h2>
+      </div>
+      <nav className="nav-links">
+        ${links.map((link) => html`
+          <${Link}
+            key=${link.to}
+            className=${location.pathname === link.to ? "nav-link active" : "nav-link"}
+            to=${link.to}
+          >
+            ${link.label}
+          <//>
+        `)}
+      </nav>
+      <div className="nav-profile">
+        <strong>${dashboard.user.name}</strong>
+        <span className=${`role-pill role-${normalizeRole(dashboard.user.role)}`}>${normalizeRole(dashboard.user.role)}</span>
+      </div>
+    </header>
+  `;
+}
+
+function WelcomePage({ dashboard, listingsCount, realisticCount }) {
+  const cards = [
+    { label: "Housing budget", value: currency.format(dashboard.budget.housingBudget) },
+    { label: "Move-in cash", value: currency.format(dashboard.user.finances.cash) },
+    { label: "Listings in city", value: String(listingsCount) },
+    { label: "Realistic matches", value: String(realisticCount) }
+  ];
+
+  return html`
+    <section className="route-stack">
+      <section className="hero">
+        <div className="hero-copy">
+          <p className="eyebrow">Welcome / Get Started</p>
+          <h1>Move from rough rent guesses to realistic housing decisions.</h1>
+          <p className="hero-text">
+            Start with the profile page, set the user role and finances, then move into area search to
+            click neighborhoods directly on the map. Use the assistant page for housing-only questions.
+          </p>
+          <div className="cta-row">
+            <${Link} className="primary-button link-button" to="/profile">Set up profile<//>
+            <${Link} className="ghost-button link-button" to="/search">Open area search<//>
+          </div>
+        </div>
+        <section className="hero-panel">
+          <div className="section-heading compact">
+            <div>
+              <p className="eyebrow">Current default</p>
+              <h2>${dashboard.user.city}</h2>
+            </div>
+            <span className=${`role-pill role-${normalizeRole(dashboard.user.role)}`}>${normalizeRole(dashboard.user.role)}</span>
+          </div>
+          <div className="metric-grid">
+            ${cards.map((card) => html`
+              <article className="metric-card" key=${card.label}>
+                <p className="metric-label">${card.label}</p>
+                <p className="metric-value">${card.value}</p>
+              </article>
+            `)}
+          </div>
+        </section>
+      </section>
+
+      <section className="panel feature-strip">
+        <article className="feature-card">
+          <p className="eyebrow">Page 1</p>
+          <h3>Profile</h3>
+          <p>Role-specific setup for renter, agent, or admin plus financial calculator inputs.</p>
+        </article>
+        <article className="feature-card">
+          <p className="eyebrow">Page 2</p>
+          <h3>Area Search</h3>
+          <p>Manual neighborhood selection on the map with listing totals and hidden costs.</p>
+        </article>
+        <article className="feature-card">
+          <p className="eyebrow">Page 3</p>
+          <h3>AI Assistant</h3>
+          <p>Separate housing-only assistant page restricted to affordability and listing topics.</p>
+        </article>
+      </section>
+    </section>
+  `;
+}
+
+function ProfilePage({ users, dashboard, onSwitchUser, onUpdateDashboard }) {
+  const cities = [...new Set(users.map((user) => user.city).concat(dashboard.listings.map((listing) => listing.city)))];
+
+  function handleInputChange(event) {
+    const { name, value } = event.target;
+
+    if (name === "userId") {
+      onSwitchUser(value);
+      return;
+    }
+
+    if (name === "city") {
+      onUpdateDashboard({ city: value, areaIds: [] });
+      return;
+    }
+
+    onUpdateDashboard({
+      finances: {
+        [name]: name === "roommates" ? Number(value) : Number(value) || 0
+      }
+    });
+  }
+
+  return html`
+    <section className="route-stack">
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Profile page</p>
+            <h2>Role-aware account setup</h2>
+          </div>
+        </div>
+
+        <form className="finance-form">
+          <label>
+            <span>User role</span>
+            <select name="userId" value=${dashboard.user.id} onChange=${handleInputChange}>
+              ${users.map((user) => html`
+                <option key=${user.id} value=${user.id}>${user.name} · ${user.role}</option>
+              `)}
+            </select>
+          </label>
+          <label>
+            <span>Preferred city</span>
+            <select name="city" value=${dashboard.user.city} onChange=${handleInputChange}>
+              ${cities.map((city) => html`<option key=${city} value=${city}>${city}</option>`)}
+            </select>
+          </label>
+          <label>
+            <span>Monthly take-home pay</span>
+            <input name="income" type="number" min="0" step="50" value=${dashboard.user.finances.income} onInput=${handleInputChange} />
+          </label>
+          <label>
+            <span>Monthly debt payments</span>
+            <input name="debt" type="number" min="0" step="25" value=${dashboard.user.finances.debt} onInput=${handleInputChange} />
+          </label>
+          <label>
+            <span>Monthly savings goal</span>
+            <input name="savings" type="number" min="0" step="25" value=${dashboard.user.finances.savings} onInput=${handleInputChange} />
+          </label>
+          <label>
+            <span>Cash available for move-in</span>
+            <input name="cash" type="number" min="0" step="100" value=${dashboard.user.finances.cash} onInput=${handleInputChange} />
+          </label>
+          <label>
+            <span>Roommates</span>
+            <select name="roommates" value=${dashboard.user.finances.roommates} onChange=${handleInputChange}>
+              <option value="0">Living alone</option>
+              <option value="1">1 roommate</option>
+              <option value="2">2 roommates</option>
+            </select>
+          </label>
+        </form>
+      </section>
+
+      <section className="layout">
+        <section className="panel">
+          <div className="section-heading compact">
+            <div>
+              <p className="eyebrow">Budget calculator</p>
+              <h3>Affordability results</h3>
+            </div>
+          </div>
+          <div className="budget-breakdown">
+            <article className="budget-row">
+              <div><strong>Recurring living expenses</strong><p>Costs tracked before rent.</p></div>
+              <strong>-${currency.format(dashboard.budget.monthlyExpenses)}</strong>
+            </article>
+            <article className="budget-row">
+              <div><strong>Debt + savings goals</strong><p>Obligations already committed.</p></div>
+              <strong>-${currency.format(dashboard.user.finances.debt + dashboard.user.finances.savings)}</strong>
+            </article>
+            <article className="budget-row">
+              <div><strong>Income-based ceiling</strong><p>35% maximum monthly target.</p></div>
+              <strong>${currency.format(dashboard.budget.incomeCap)}</strong>
+            </article>
+            <article className="budget-row">
+              <div><strong>Affordable housing budget</strong><p>Lower of leftover cash or income ceiling.</p></div>
+              <strong>${currency.format(dashboard.budget.housingBudget)}</strong>
+            </article>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="section-heading compact">
+            <div>
+              <p className="eyebrow">Role guidance</p>
+              <h3>Suggestions for this profile</h3>
+            </div>
+          </div>
+          <div className="recommendation-list">
+            ${dashboard.recommendations.map((item) => html`
+              <article className="recommendation-card" key=${item}>${item}</article>
+            `)}
+          </div>
+        </section>
+      </section>
+    </section>
+  `;
+}
+
+function SearchPage({ dashboard, selectedAreaIds, onToggleArea, onClearAreas }) {
+  return html`
+    <section className="route-stack">
+      <section className="layout">
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Area page</p>
+              <h2>Manual neighborhood selection</h2>
+            </div>
+            <button className="ghost-button" type="button" onClick=${onClearAreas}>Clear map filter</button>
+          </div>
+          <p className="map-text">
+            Click one or more areas to manually narrow listings. If nothing is selected, the full city stays visible.
+          </p>
+          <${CityMapView}
+            cityMap=${dashboard.cityMap}
+            selectedAreaIds=${selectedAreaIds}
+            onToggleArea=${onToggleArea}
+          />
+          <div className="selected-areas">
+            ${selectedAreaIds.length > 0
+              ? dashboard.cityMap.areas
+                  .filter((area) => selectedAreaIds.includes(area.id))
+                  .map((area) => html`<span key=${area.id} className="selected-chip">${area.name}</span>`)
+              : html`<span className="selected-empty">No area selected. Showing the full city.</span>`}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="section-heading compact">
+            <div>
+              <p className="eyebrow">Snapshot</p>
+              <h3>${dashboard.user.city}</h3>
+            </div>
+          </div>
+          <div className="metric-grid metric-grid-single">
+            <article className="metric-card">
+              <p className="metric-label">Housing budget</p>
+              <p className="metric-value">${currency.format(dashboard.budget.housingBudget)}</p>
+            </article>
+            <article className="metric-card">
+              <p className="metric-label">Move-in cash</p>
+              <p className="metric-value">${currency.format(dashboard.user.finances.cash)}</p>
+            </article>
+            <article className="metric-card">
+              <p className="metric-label">Listings in filter</p>
+              <p className="metric-value">${dashboard.listings.length}</p>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Listings</p>
+            <h2>Hidden-cost-aware matches</h2>
+          </div>
+        </div>
+        <div className="listing-grid">
+          ${dashboard.listings.length > 0
+            ? dashboard.listings.map((listing) => html`<${ListingCard} key=${listing.id} listing=${listing} budget=${dashboard.budget} />`)
+            : html`<article className="listing-card empty-card">No listings match this city and map selection.</article>`}
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function AssistantPage({ dashboard, selectedAreaIds }) {
+  const [message, setMessage] = useState("");
+  const [reply, setReply] = useState("Ask a housing-related question to get suggestions tied to the current profile and selected map area.");
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (!message.trim()) {
+      setReply("Enter a housing-related question first.");
+      return;
+    }
+
+    setReply("Thinking...");
+    const response = await fetch(`${API_BASE}/assistant/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: dashboard.user.id,
+        areaIds: selectedAreaIds,
+        message
+      })
+    });
+    const payload = await response.json();
+    setReply(payload.reply);
+  }
+
+  return html`
+    <section className="route-stack">
+      <section className="layout">
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">AI assistant page</p>
+              <h2>Housing-only guidance</h2>
+            </div>
+          </div>
+          <p className="assistant-note">
+            This assistant is restricted to housing affordability, neighborhoods, move-in costs,
+            roommates, listings, commute, and similar site topics. Random prompts are rejected.
+          </p>
+          <form className="assistant-form" onSubmit=${handleSubmit}>
+            <textarea
+              rows="5"
+              value=${message}
+              onInput=${(event) => setMessage(event.target.value)}
+              placeholder="Example: Can I afford anything in NoDa if I want low move-in costs?"
+            />
+            <button type="submit" className="primary-button">Ask assistant</button>
+          </form>
+          <div className="assistant-response">${reply}</div>
+        </section>
+
+        <section className="panel">
+          <div className="section-heading compact">
+            <div>
+              <p className="eyebrow">Context</p>
+              <h3>Current inputs</h3>
+            </div>
+          </div>
+          <div className="recommendation-list">
+            <article className="recommendation-card">
+              <strong>User</strong>
+              <p>${dashboard.user.name} · ${dashboard.user.role}</p>
+            </article>
+            <article className="recommendation-card">
+              <strong>City</strong>
+              <p>${dashboard.user.city}</p>
+            </article>
+            <article className="recommendation-card">
+              <strong>Area filter</strong>
+              <p>
+                ${selectedAreaIds.length > 0
+                  ? dashboard.cityMap.areas.filter((area) => selectedAreaIds.includes(area.id)).map((area) => area.name).join(", ")
+                  : "No neighborhood selected"}
+              </p>
+            </article>
+            <article className="recommendation-card">
+              <strong>Budget</strong>
+              <p>${currency.format(dashboard.budget.housingBudget)} monthly</p>
+            </article>
+          </div>
+        </section>
+      </section>
+    </section>
+  `;
+}
+
+function CityMapView({ cityMap, selectedAreaIds, onToggleArea }) {
+  return html`
+    <svg className="city-map" viewBox=${cityMap.viewBox} role="img" aria-label=${`${cityMap.city} neighborhood map`}>
+      <rect x="0" y="0" width="420" height="280" rx="28" className="map-frame"></rect>
+      ${cityMap.areas.map((area) => {
+        const point = getLabelPoint(area.points);
+        return html`
+          <g key=${area.id} className="map-group" onClick=${() => onToggleArea(area.id)}>
+            <polygon
+              className=${selectedAreaIds.includes(area.id) ? "map-area active" : "map-area"}
+              points=${area.points}
+            ></polygon>
+            <text x=${point.x} y=${point.y} className="map-label">${area.name}</text>
+          </g>
+        `;
+      })}
+    </svg>
+  `;
+}
+
+function ListingCard({ listing, budget }) {
+  return html`
+    <article className="listing-card">
+      <div className="listing-top">
+        <div>
+          <p className="eyebrow">${listing.neighborhood}</p>
+          <h3>${listing.title}</h3>
+          <p className="listing-meta">${listing.beds} • ${listing.city}</p>
+        </div>
+        <span className=${`chip ${listing.fitClassName}`}>${listing.fitLabel}</span>
+      </div>
+      <div>
+        <div className="listing-price">${currency.format(listing.monthlyTotal)}<span className="listing-meta"> / month</span></div>
+        <p className="listing-meta">
+          Base rent ${currency.format(listing.rent / listing.shareDivisor)} + hidden monthly costs ${currency.format(listing.monthlyHidden)}
+        </p>
+      </div>
+      <div className="listing-costs">
+        <div className="listing-cost-row">
+          <span>Move-in cash needed</span>
+          <strong>${currency.format(listing.moveInCash)}</strong>
+        </div>
+        <div className="listing-cost-row">
+          <span>Monthly leftover after housing</span>
+          <strong>${currency.format(Math.max(0, budget.housingBudget - listing.monthlyTotal))}</strong>
+        </div>
+        <div className="listing-cost-row">
+          <span>Hidden cost stack</span>
+          <strong>${currency.format(listing.monthlyHidden)}</strong>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function getLabelPoint(points) {
+  const coords = points.split(" ").map((pair) => pair.split(",").map(Number));
+  const total = coords.reduce((acc, [x, y]) => ({ x: acc.x + x, y: acc.y + y }), { x: 0, y: 0 });
+  return { x: total.x / coords.length, y: total.y / coords.length };
+}
+
+function normalizeDashboard(payload) {
+  return {
+    ...payload,
+    user: {
+      ...payload.user,
+      role: normalizeRole(payload.user?.role)
+    },
+    listings: (payload.listings || []).map((listing) => ({
+      ...listing,
+      fitLabel: listing.fitLabel || listing.fit?.label || "",
+      fitClassName: listing.fitClassName || listing.fit?.className || ""
+    }))
+  };
+}
+
+function normalizeRole(role) {
+  return String(role || "").toLowerCase();
+}
+
+createRoot(document.getElementById("root")).render(html`<${App} />`);
