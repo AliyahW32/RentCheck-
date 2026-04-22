@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public class CityMapRepository {
@@ -34,5 +35,9 @@ public class CityMapRepository {
 
     public Optional<CityMap> findByCity(String city) {
         return Optional.ofNullable(cityMaps.get(city));
+    }
+
+    public Set<String> getSupportedCities() {
+        return cityMaps.keySet();
     }
 }

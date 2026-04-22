@@ -7,6 +7,7 @@ public class Listing {
     private String beds;
     private String neighborhood;
     private String areaId;
+    private String imageUrl;
     private double rent;
     private double utilities;
     private double internet;
@@ -20,7 +21,7 @@ public class Listing {
     public Listing() {
     }
 
-    public Listing(long id, String title, String city, String beds, String neighborhood, String areaId, double rent,
+    public Listing(long id, String title, String city, String beds, String neighborhood, String areaId, String imageUrl, double rent,
                    double utilities, double internet, double parking, double insurance, double transit, double pet,
                    FeeProfile fees, double deposit) {
         this.id = id;
@@ -29,6 +30,7 @@ public class Listing {
         this.beds = beds;
         this.neighborhood = neighborhood;
         this.areaId = areaId;
+        this.imageUrl = imageUrl;
         this.rent = rent;
         this.utilities = utilities;
         this.internet = internet;
@@ -86,6 +88,14 @@ public class Listing {
 
     public void setAreaId(String areaId) {
         this.areaId = areaId;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public double getRent() {

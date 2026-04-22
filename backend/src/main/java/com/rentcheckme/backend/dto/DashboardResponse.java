@@ -14,12 +14,17 @@ public class DashboardResponse {
     private List<String> selectedAreaIds;
     private List<ListingView> listings;
     private List<String> recommendations;
+    private AnalyticsResponse analytics;
+    private List<VehicleOptionResponse> vehicleOptions;
+    private List<String> supportedCities;
 
     public DashboardResponse() {
     }
 
     public DashboardResponse(User user, List<Expense> expenses, CityMap cityMap, BudgetResponse budget,
-                             List<String> selectedAreaIds, List<ListingView> listings, List<String> recommendations) {
+                             List<String> selectedAreaIds, List<ListingView> listings, List<String> recommendations,
+                             AnalyticsResponse analytics, List<VehicleOptionResponse> vehicleOptions,
+                             List<String> supportedCities) {
         this.user = user;
         this.expenses = expenses;
         this.cityMap = cityMap;
@@ -27,6 +32,9 @@ public class DashboardResponse {
         this.selectedAreaIds = selectedAreaIds;
         this.listings = listings;
         this.recommendations = recommendations;
+        this.analytics = analytics;
+        this.vehicleOptions = vehicleOptions;
+        this.supportedCities = supportedCities;
     }
 
     public User getUser() {
@@ -55,5 +63,17 @@ public class DashboardResponse {
 
     public List<String> getRecommendations() {
         return recommendations;
+    }
+
+    public AnalyticsResponse getAnalytics() {
+        return analytics;
+    }
+
+    public List<VehicleOptionResponse> getVehicleOptions() {
+        return vehicleOptions;
+    }
+
+    public List<String> getSupportedCities() {
+        return supportedCities;
     }
 }

@@ -13,14 +13,17 @@ import java.util.List;
 public class ListingService {
 
     private final ListingRepository listingRepository;
+    private final MapService mapService;
 
-    public ListingService(ListingRepository listingRepository) {
+    public ListingService(ListingRepository listingRepository, MapService mapService) {
         this.listingRepository = listingRepository;
+        this.mapService = mapService;
     }
 
     public List<ListingView> getListingsForUser(User user, BudgetResponse budget, List<String> areaIds) {
+        String normalizedCity = mapService.normalizeCity(user.getCity());
         return listingRepository.findAll().stream()
-            .filter(listing -> listing.getCity().equals(user.getCity()))
+            .filter(listing -> listing.getCity().equals(normalizedCity))
             .filter(listing -> areaIds == null || areaIds.isEmpty() || areaIds.contains(listing.getAreaId()))
             .map(listing -> toListingView(listing, user, budget))
             .sorted((left, right) -> Double.compare(left.getMonthlyTotal(), right.getMonthlyTotal()))
@@ -34,8 +37,11 @@ public class ListingService {
 
         double monthlyHidden = listing.getUtilities() + listing.getInternet() + listing.getParking()
             + listing.getInsurance() + listing.getTransit() + listing.getPet() + listing.getFees().getAmenity();
-        double monthlyTotal = (listing.getRent() + monthlyHidden) / shareDivisor;
+        double sharedRent = listing.getRent() / shareDivisor;
+        double monthlyHiddenPerShare = monthlyHidden / shareDivisor;
+        double monthlyTotal = sharedRent + monthlyHiddenPerShare;
         double moveInCash = (listing.getDeposit() + listing.getRent() + listing.getFees().getApplication()) / shareDivisor;
+        double leftoverAfterHousing = Math.max(0, budget.getHousingBudget() - monthlyTotal);
 
         String fitLabel = "Not realistic";
         String fitClassName = "fit-bad";
@@ -50,9 +56,11 @@ public class ListingService {
 
         return new ListingView(
             listing,
-            monthlyHidden / shareDivisor,
+            monthlyHiddenPerShare,
             monthlyTotal,
             moveInCash,
+            sharedRent,
+            leftoverAfterHousing,
             shareDivisor,
             fitLabel,
             fitClassName

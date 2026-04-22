@@ -6,16 +6,18 @@ public class FinanceProfile {
     private double savings;
     private double cash;
     private int roommates;
+    private double monthlyEssentials;
 
     public FinanceProfile() {
     }
 
-    public FinanceProfile(double income, double debt, double savings, double cash, int roommates) {
+    public FinanceProfile(double income, double debt, double savings, double cash, int roommates, double monthlyEssentials) {
         this.income = income;
         this.debt = debt;
         this.savings = savings;
         this.cash = cash;
         this.roommates = roommates;
+        this.monthlyEssentials = monthlyEssentials;
     }
 
     public double getIncome() {
@@ -56,5 +58,13 @@ public class FinanceProfile {
 
     public void setRoommates(int roommates) {
         this.roommates = roommates;
+    }
+
+    public double getMonthlyEssentials() {
+        return monthlyEssentials;
+    }
+
+    public void setMonthlyEssentials(double monthlyEssentials) {
+        this.monthlyEssentials = monthlyEssentials;
     }
 }

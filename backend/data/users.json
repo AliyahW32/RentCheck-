@@ -1,0 +1,141 @@
+[ {
+  "id" : "u-renter",
+  "name" : "Jordan Carter",
+  "email" : "jordan@example.com",
+  "phone" : "(704) 555-0181",
+  "role" : "RENTER",
+  "city" : "Charlotte, NC",
+  "finances" : {
+    "income" : 4600.0,
+    "debt" : 350.0,
+    "savings" : 450.0,
+    "cash" : 5200.0,
+    "roommates" : 0,
+    "monthlyEssentials" : 980.0
+  },
+  "preferences" : {
+    "beds" : "1 bed",
+    "maxCommute" : 35,
+    "priorities" : [ "budget", "walkability", "low fees" ],
+    "useCase" : "first apartment",
+    "budgetingFor" : "living"
+  },
+  "locationPreference" : {
+    "zipCode" : "28203",
+    "useCurrentLocation" : false,
+    "currentLocationLabel" : ""
+  },
+  "monthlySpendingEntries" : null
+}, {
+  "id" : "u-agent",
+  "name" : "Maya Singh",
+  "email" : "maya@example.com",
+  "phone" : "(404) 555-0118",
+  "role" : "AGENT",
+  "city" : "Atlanta, GA",
+  "finances" : {
+    "income" : 6800.0,
+    "debt" : 420.0,
+    "savings" : 600.0,
+    "cash" : 9000.0,
+    "roommates" : 0,
+    "monthlyEssentials" : 1240.0
+  },
+  "preferences" : {
+    "beds" : "1 bed",
+    "maxCommute" : 30,
+    "priorities" : [ "inventory visibility", "commute", "move-in cash" ],
+    "useCase" : "relocation",
+    "budgetingFor" : "both"
+  },
+  "locationPreference" : {
+    "zipCode" : "30312",
+    "useCurrentLocation" : false,
+    "currentLocationLabel" : ""
+  },
+  "monthlySpendingEntries" : null
+}, {
+  "id" : "u-admin",
+  "name" : "Casey Brooks",
+  "email" : "casey@example.com",
+  "phone" : "(919) 555-0108",
+  "role" : "ADMIN",
+  "city" : "Durham, NC",
+  "finances" : {
+    "income" : 7200.0,
+    "debt" : 250.0,
+    "savings" : 800.0,
+    "cash" : 12500.0,
+    "roommates" : 1,
+    "monthlyEssentials" : 1180.0
+  },
+  "preferences" : {
+    "beds" : "2 bed",
+    "maxCommute" : 25,
+    "priorities" : [ "operations", "coverage", "risk" ],
+    "useCase" : "team planning",
+    "budgetingFor" : "living"
+  },
+  "locationPreference" : {
+    "zipCode" : "27701",
+    "useCurrentLocation" : true,
+    "currentLocationLabel" : "Downtown Durham device location"
+  },
+  "monthlySpendingEntries" : null
+}, {
+  "id" : "u-1001",
+  "name" : "Aliyah Williams",
+  "email" : "arwilliams2@uncg.edu",
+  "phone" : "3369122533",
+  "role" : "RENTER",
+  "city" : "Charlotte, NC",
+  "finances" : {
+    "income" : 4200.0,
+    "debt" : 320.0,
+    "savings" : 450.0,
+    "cash" : 6800.0,
+    "roommates" : 0,
+    "monthlyEssentials" : 920.0
+  },
+  "preferences" : {
+    "beds" : "1 bed",
+    "maxCommute" : 30,
+    "priorities" : [ "living", "first apartment" ],
+    "useCase" : "first apartment",
+    "budgetingFor" : "living"
+  },
+  "locationPreference" : {
+    "zipCode" : "27406",
+    "useCurrentLocation" : false,
+    "currentLocationLabel" : ""
+  },
+  "monthlySpendingEntries" : null
+}, {
+  "id" : "u-1002",
+  "name" : "Aliyah Williams",
+  "email" : "arwilliams2@uncg.edu",
+  "phone" : "3369122533",
+  "role" : "RENTER",
+  "city" : "Charlotte, NC",
+  "finances" : {
+    "income" : 4200.0,
+    "debt" : 320.0,
+    "savings" : 450.0,
+    "cash" : 6800.0,
+    "roommates" : 1,
+    "monthlyEssentials" : 920.0
+  },
+  "preferences" : {
+    "beds" : "1 bed",
+    "maxCommute" : 30,
+    "priorities" : [ "casual budgeting", "first apartment" ],
+    "useCase" : "first apartment",
+    "budgetingFor" : "casual budgeting"
+  },
+  "locationPreference" : {
+    "zipCode" : "27406",
+    "useCurrentLocation" : true,
+    "currentLocationLabel" : "Current location enabled (36.069, -79.808)"
+  },
+  "monthlySpendingEntries" : [ ]
+} ]

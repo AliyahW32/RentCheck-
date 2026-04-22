@@ -3,6 +3,8 @@ package com.rentcheckme.backend.service;
 import com.rentcheckme.backend.dto.BudgetResponse;
 import com.rentcheckme.backend.dto.DashboardRequest;
 import com.rentcheckme.backend.dto.DashboardResponse;
+import com.rentcheckme.backend.dto.AnalyticsResponse;
+import com.rentcheckme.backend.dto.VehicleOptionResponse;
 import com.rentcheckme.backend.model.Expense;
 import com.rentcheckme.backend.model.User;
 import com.rentcheckme.backend.repository.ExpenseRepository;
@@ -44,6 +46,8 @@ public class DashboardService {
             : request.getExpenses();
         List<String> areaIds = request.getAreaIds() == null ? List.of() : request.getAreaIds();
         BudgetResponse budget = calculatorService.calculateBudget(user.getFinances(), expenses);
+        AnalyticsResponse analytics = calculatorService.calculateAnalytics(user.getFinances(), budget, user.getMonthlySpendingEntries());
+        List<VehicleOptionResponse> vehicleOptions = calculatorService.calculateVehicleOptions(budget);
 
         return new DashboardResponse(
             user,
@@ -52,12 +56,15 @@ public class DashboardService {
             budget,
             areaIds,
             listingService.getListingsForUser(user, budget, areaIds),
-            recommendationsFor(user)
+            recommendationsFor(user),
+            analytics,
+            vehicleOptions,
+            mapService.getSupportedCities()
         );
     }
 
     private List<String> recommendationsFor(User user) {
-        return switch (user.getRole()) {
+        List<String> base = switch (user.getRole()) {
             case AGENT -> List.of(
                 "Track neighborhoods where hidden costs push listings out of budget even when rent looks acceptable.",
                 "Use the map to narrow inventory before discussing specific blocks with a renter."
@@ -70,6 +77,22 @@ public class DashboardService {
                 "Start broad by city, then click the map to keep only neighborhoods you would actually live in.",
                 "If move-in cash is the blocker, compare shared 2-bedroom options before stretching monthly rent."
             );
+        };
+
+        if (user.getPreferences() == null || user.getPreferences().getBudgetingFor() == null) {
+            return base;
+        }
+
+        return switch (user.getPreferences().getBudgetingFor().toLowerCase()) {
+            case "vehicle" -> List.of(
+                "Keep the vehicle payment inside the transportation budget before taking on a longer loan.",
+                "Compare the full monthly car stack, not just the payment."
+            );
+            case "both" -> List.of(
+                "Balance rent and transportation together so one decision does not break the other.",
+                "Use the analytics page to monitor total committed spending before moving forward."
+            );
+            default -> base;
         };
     }
 }
